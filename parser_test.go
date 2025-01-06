@@ -4,11 +4,11 @@ import (
 	"testing"
 )
 
-func TestParseSuccess(t *testing.T) {
+func helpers(t *testing.T, parser func(string) (Expr, error)) (func(string, string), func(string)) {
 	another := func(s string, sExpected string) {
 		t.Helper()
 
-		e, err := Parse(s)
+		e, err := parser(s)
 		if err != nil {
 			t.Fatalf("unexpected error when parsing %s: %s", s, err)
 		}
@@ -17,10 +17,16 @@ func TestParseSuccess(t *testing.T) {
 			t.Fatalf("unexpected string constructed;\ngot\n%s\nwant\n%s", res, sExpected)
 		}
 	}
+
 	same := func(s string) {
 		t.Helper()
 		another(s, s)
 	}
+	return another, same
+}
+
+func TestParseSuccess(t *testing.T) {
+	another, same := helpers(t, Parse)
 
 	// metricExpr
 	same(`{}`)
@@ -951,4 +957,11 @@ func TestParseError(t *testing.T) {
 	f(`with (x={a="b" or c="d"}) x{d="e" or z="c"}`)
 	f(`with (x={a="b" or c="d"}) {x,d="e"}`)
 	f(`with (x={a="b" or c="d"}) {x,d="e" or z="c"}`)
+}
+
+func TestParseRawSuccess(t *testing.T) {
+	another, same := helpers(t, ParseRaw)
+
+	same("(metric[5m])")
+	another(`100 / 100`, `(100 / 100)`)
 }
